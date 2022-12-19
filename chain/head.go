@@ -17,18 +17,11 @@ func HeadChannel(eth *ethclient.Client, interval time.Duration) (chan uint64, er
 			block, err := eth.BlockNumber(context.Background())
 			if err != nil {
 				log.Println("cannot get head. retry in 2s ...")
-				time.Sleep(maxDuration(2*time.Second, interval))
+				time.Sleep(2 * time.Second)
 				continue
 			}
 			headChan <- block
 		}
 	}()
 	return headChan, nil
-}
-
-func maxDuration(a, b time.Duration) time.Duration {
-	if a > b {
-		return a
-	}
-	return b
 }
