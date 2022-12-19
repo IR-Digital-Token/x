@@ -6,7 +6,6 @@ import (
 	"github.com/IR-Digital-Token/x/chain/events"
 	"github.com/ethereum/go-ethereum"
 
-	"log"
 	"math/big"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 type Indexer struct {
 	Head chan uint64
 
-	lag     int
 	current uint64
 
 	eth                 *ethclient.Client
@@ -36,12 +34,12 @@ func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer) *Indexer {
 func (w *Indexer) Init(blockInterval time.Duration) {
 	head, err := HeadChannel(w.eth, blockInterval)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	w.current, err = w.blockPositionHolder.Read()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	w.Head = head
 }
