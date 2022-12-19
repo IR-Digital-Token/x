@@ -16,7 +16,7 @@ import (
 type Indexer struct {
 	Head chan uint64
 
-	current uint64
+	ptr uint64
 
 	eth                 *ethclient.Client
 	blockPositionHolder BlockPointer
@@ -32,12 +32,13 @@ func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer) *Indexer {
 }
 
 func (w *Indexer) Init(blockInterval time.Duration) {
-	head, err := HeadChannel(w.eth, blockInterval)
+	ptr, err := w.blockPositionHolder.Read()
 	if err != nil {
 		panic(err)
 	}
+	w.ptr = ptr
 
-	w.current, err = w.blockPositionHolder.Read()
+	head, err := HeadChannel(w.eth, blockInterval)
 	if err != nil {
 		panic(err)
 	}
@@ -47,8 +48,8 @@ func (w *Indexer) Init(blockInterval time.Duration) {
 func (w *Indexer) Start() error {
 	head := <-w.Head
 
-	for w.current < head {
-		block, err := w.eth.BlockByNumber(context.Background(), big.NewInt(int64(w.current)))
+	for w.ptr <= head {
+		block, err := w.eth.BlockByNumber(context.Background(), big.NewInt(int64(w.ptr)))
 		if err != nil {
 			return err
 		}
@@ -66,12 +67,12 @@ func (w *Indexer) Start() error {
 			return err
 		}
 
-		err = w.blockPositionHolder.Update(w.current)
+		err = w.blockPositionHolder.Update(w.ptr)
 		if err != nil {
 			return err
 		}
 
-		w.current++
+		w.ptr++
 	}
 
 	return nil
