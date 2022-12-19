@@ -1,3 +1,3 @@
-module gitlab.mebitex.com/lending-and-borrowing/chain-events
+module github.com/IR-Digital-Token/x
 
 go 1.19
