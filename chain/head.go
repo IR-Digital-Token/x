@@ -16,7 +16,7 @@ func HeadChannel(eth *ethclient.Client, interval time.Duration) (chan uint64, er
 			<-t.C
 			block, err := eth.BlockNumber(context.Background())
 			if err != nil {
-				log.Println("cannot get head. retry in 2s ...")
+				log.Println("cannot get head. retrying in a few seconds ...")
 				time.Sleep(2 * time.Second)
 				continue
 			}
