@@ -7,7 +7,7 @@ import (
 type CallbackFn[T any] func(event T) error
 
 type Handler interface {
-	Signature() string
+	ID() string
 	DecodeLog(log types.Log) (interface{}, error)
 	HandleEvent(event interface{}) error
 	DecodeAndHandle(log types.Log) error

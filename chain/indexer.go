@@ -93,5 +93,5 @@ func (w *Indexer) processLogs(logs []types.Log) error {
 }
 
 func (w *Indexer) RegisterEventHandler(handler events.Handler) {
-	w.logHandlers[handler.Signature()] = handler
+	w.logHandlers[handler.ID()] = handler
 }
