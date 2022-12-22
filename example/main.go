@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/IR-Digital-Token/x/chain"
-	clipperBinding "github.com/IR-Digital-Token/x/chain/bindings/clipper"
+	"github.com/IR-Digital-Token/x/chain/bindings/clipper"
 	"github.com/IR-Digital-Token/x/chain/events"
-	"github.com/IR-Digital-Token/x/chain/events/clipper"
 	"github.com/IR-Digital-Token/x/messages"
 	"github.com/IR-Digital-Token/x/queue"
 	"github.com/IR-Digital-Token/x/queue/gochannel"
@@ -27,7 +26,7 @@ func main() {
 	q := gochannel.NewGoChannel(10)
 	q.Subscribe(context.Background(), "clipper-kick", func(msg *messages.Message) error {
 		log.Println("msg received")
-		var v *clipperBinding.ClipperKick
+		var v *clipper.ClipperKick
 		err = json.Unmarshal(msg.Payload, &v)
 		if err != nil {
 			log.Println("error unmarshaling", err)
@@ -50,16 +49,16 @@ func main() {
 	indexer.Start()
 }
 
-func simpleCallback() events.CallbackFn[clipperBinding.ClipperKick] {
-	return func(kick clipperBinding.ClipperKick) error {
+func simpleCallback() events.CallbackFn[clipper.ClipperKick] {
+	return func(kick clipper.ClipperKick) error {
 		fmt.Println("kick in simple", kick.Id, kick.Usr)
 		return nil
 	}
 }
 
-func queueCallback(q queue.Q) events.CallbackFn[clipperBinding.ClipperKick] {
+func queueCallback(q queue.Q) events.CallbackFn[clipper.ClipperKick] {
 	queue := q
-	return func(event clipperBinding.ClipperKick) error {
+	return func(event clipper.ClipperKick) error {
 		payload, _ := json.Marshal(event)
 		msg := messages.NewMessage(payload)
 		err := queue.Publish(context.Background(), "clipper-kick", msg)
