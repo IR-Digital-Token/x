@@ -1,0 +1,42 @@
+[
+    {
+        "name": "Deny",
+        "signature": "Deny(address)",
+        "hash": "0x184450df2e323acec0ed3b5c7531b81f9b4cdef7914dfd4c0a4317416bb5251b"
+    },
+    {
+        "name": "File",
+        "signature": "File(bytes32,uint256)",
+        "hash": "0xe986e40cc8c151830d4f61050f4fb2e4add8567caad2d5f5496f9158e91fe4c7"
+    },
+    {
+        "name": "File0",
+        "signature": "File(bytes32,address)",
+        "hash": "0x8fef588b5fc1afbf5b2f06c1a435d513f208da2e6704c3d8f0e0ec91167066ba"
+    },
+    {
+        "name": "Kick",
+        "signature": "Kick(uint256,uint256,uint256,uint256,address,address,uint256)",
+        "hash": "0x7c5bfdc0a5e8192f6cd4972f382cec69116862fb62e6abff8003874c58e064b8"
+    },
+    {
+        "name": "Redo",
+        "signature": "Redo(uint256,uint256,uint256,uint256,address,address,uint256)",
+        "hash": "0x275de7ecdd375b5e8049319f8b350686131c219dd4dc450a08e9cf83b03c865f"
+    },
+    {
+        "name": "Rely",
+        "signature": "Rely(address)",
+        "hash": "0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60"
+    },
+    {
+        "name": "Take",
+        "signature": "Take(uint256,uint256,uint256,uint256,uint256,uint256,address)",
+        "hash": "0x05e309fd6ce72f2ab888a20056bb4210df08daed86f21f95053deb19964d86b1"
+    },
+    {
+        "name": "Yank",
+        "signature": "Yank(uint256)",
+        "hash": "0x2c5d2826eb5903b8fc201cf48094b858f42f61c7eaac9aaf43ebed490138144e"
+    }
+]
