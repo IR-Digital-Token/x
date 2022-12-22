@@ -1,47 +1,53 @@
+// Code generated - DO NOT EDIT.
+// This file is a generated event handler and any manual changes will be lost.
+
 package clipper
 
 import (
+	"errors"
 	"github.com/IR-Digital-Token/x/chain/bindings/clipper"
 	"github.com/IR-Digital-Token/x/chain/events"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/pkg/errors"
 )
 
-type kickHandler struct {
+type KickHandler struct {
 	binding  *clipper.Clipper
 	callback events.CallbackFn[clipper.ClipperKick]
 }
 
-func NewKickHandler(clipperAddr common.Address, eth *ethclient.Client, callback events.CallbackFn[clipper.ClipperKick]) events.Handler {
-	binding, err := clipper.NewClipper(clipperAddr, eth)
-	if err != nil {
-		panic(err)
-	}
-	return &kickHandler{binding: binding, callback: callback}
-}
-
-func (h *kickHandler) Signature() string {
+func (h *KickHandler) Signature() string {
 	return "0x7c5bfdc0a5e8192f6cd4972f382cec69116862fb62e6abff8003874c58e064b8"
 }
 
-func (h *kickHandler) DecodeLog(log types.Log) (interface{}, error) {
+func (h *KickHandler) DecodeLog(log types.Log) (interface{}, error) {
 	return h.binding.ParseKick(log)
 }
 
-func (h *kickHandler) HandleEvent(event interface{}) error {
-	kick, ok := event.(clipper.ClipperKick)
+func (h *KickHandler) HandleEvent(event interface{}) error {
+	e, ok := event.(clipper.ClipperKick)
 	if !ok {
-		return errors.New("event type is not clipper kick.")
+		return errors.New("event type is not ClipperKick")
 	}
-	return h.callback(kick)
+	return h.callback(e)
 }
 
-func (h *kickHandler) DecodeAndHandle(log types.Log) error {
-	kick, err := h.binding.ParseKick(log)
+func (h *KickHandler) DecodeAndHandle(log types.Log) error {
+	e, err := h.binding.ParseKick(log)
 	if err != nil {
 		return err
 	}
-	return h.callback(*kick)
+	return h.callback(*e)
+}
+
+func NewKickHandler(addr common.Address, eth *ethclient.Client, callback events.CallbackFn[clipper.ClipperKick]) events.Handler {
+	b, err := clipper.NewClipper(addr, eth)
+	if err != nil {
+		panic(err)
+	}
+	return &KickHandler{
+		binding:  b,
+		callback: callback,
+	}
 }
