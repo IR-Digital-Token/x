@@ -15,4 +15,4 @@ jobs:
         goarch: amd64
         goversion: 1.19
         binary_name: eh-gen
-        project_path: ./codegen
+        project_path: ./codegen/
