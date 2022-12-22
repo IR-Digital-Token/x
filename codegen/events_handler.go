@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/spf13/cobra"
 )
 
 var eventHandlerTemplate = `// Code generated - DO NOT EDIT.
@@ -69,39 +70,30 @@ var rootCmd = &cobra.Command{
 	Short: "eh-gen generates event handlers from binding and events file",
 	Run: func(cmd *cobra.Command, args []string) {
 		contract, _ := cmd.Flags().GetString("contract")
-		eventsFilePath, _ := cmd.Flags().GetString("events")
 		bindingPackagePath, _ := cmd.Flags().GetString("binding-package")
 		outputPath, _ := cmd.Flags().GetString("output-dir")
+		abiPath, _ := cmd.Flags().GetString("abi")
 
-		eventsFile, err := os.Open(eventsFilePath)
+		abiFile, err := os.Open(abiPath)
 		if err != nil {
 			panic(err)
 		}
-
-		var events []Event
-		err = json.NewDecoder(eventsFile).Decode(&events)
+		abi, err := abi.JSON(abiFile)
 		if err != nil {
 			panic(err)
 		}
-
-		for _, event := range events {
+		for _, event := range abi.Events {
 			data := Data{
 				Package:               strings.ToLower(contract),
 				BindingPath:           bindingPackagePath,
 				BindingEventName:      event.Name,
-				BindingEventSignature: event.Hash,
+				BindingEventSignature: event.ID.Hex(),
 				BindingContract:       contract,
 				BindingPackage:        strings.ToLower(contract),
 			}
 			codeGen(data, outputPath+"/"+strings.ToLower(event.Name)+".go")
 		}
 	},
-}
-
-type Event struct {
-	Name      string `json:"name"`
-	Signature string `json:"signature"`
-	Hash      string `json:"hash"`
 }
 
 type Data struct {
@@ -126,10 +118,10 @@ func codeGen(d Data, output string) {
 }
 
 func Execute() {
-	rootCmd.PersistentFlags().String("events", "", "")
 	rootCmd.PersistentFlags().String("binding-package", "", "")
 	rootCmd.PersistentFlags().String("output-dir", "", "")
 	rootCmd.PersistentFlags().String("contract", "", "")
+	rootCmd.PersistentFlags().String("abi", "", "")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
