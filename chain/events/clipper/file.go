@@ -18,7 +18,7 @@ type FileHandler struct {
 }
 
 func (h *FileHandler) Signature() string {
-	return "0x8fef588b5fc1afbf5b2f06c1a435d513f208da2e6704c3d8f0e0ec91167066ba"
+	return "0xe986e40cc8c151830d4f61050f4fb2e4add8567caad2d5f5496f9158e91fe4c7"
 }
 
 func (h *FileHandler) DecodeLog(log types.Log) (interface{}, error) {
