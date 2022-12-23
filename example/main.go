@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 	"log"
 	"time"
 
@@ -11,8 +12,7 @@ import (
 	"github.com/IR-Digital-Token/x/chain/bindings/clipper"
 	"github.com/IR-Digital-Token/x/chain/events"
 	"github.com/IR-Digital-Token/x/messages"
-	"github.com/IR-Digital-Token/x/queue"
-	"github.com/IR-Digital-Token/x/queue/gochannel"
+	"github.com/IR-Digital-Token/x/pubsub/gochannel"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -36,36 +36,26 @@ func main() {
 	})
 
 	simepleKickHandler := clipper.NewKickHandler(common.HexToAddress("0xc67963a226eddd77B91aD8c421630A1b0AdFF270"), eth, simpleCallback())
-	queueKickHandler := clipper.NewKickHandler(common.HexToAddress("0xc67963a226eddd77B91aD8c421630A1b0AdFF270"), eth, queueCallback(q))
 
 	blockPtr := chain.NewFileBlockPointer(".", "eth.ptr", 16196820)
 	blockPtr.Create()
 
-	indexer := chain.NewIndexer(eth, blockPtr)
+	indexer := chain.NewIndexer(eth, blockPtr, 3)
 	indexer.RegisterEventHandler(simepleKickHandler)
-	indexer.RegisterEventHandler(queueKickHandler)
+	indexer.RegisterAddress(common.HexToAddress("0xc67963a226eddd77B91aD8c421630A1b0AdFF270"))
 
 	indexer.Init(time.Second * 10)
-	indexer.Start()
-}
-
-func simpleCallback() events.CallbackFn[clipper.ClipperKick] {
-	return func(kick clipper.ClipperKick) error {
-		fmt.Println("kick in simple", kick.Id, kick.Usr)
-		return nil
+	for {
+		err = indexer.Start()
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 
-func queueCallback(q queue.Q) events.CallbackFn[clipper.ClipperKick] {
-	queue := q
-	return func(event clipper.ClipperKick) error {
-		payload, _ := json.Marshal(event)
-		msg := messages.NewMessage(payload)
-		err := queue.Publish(context.Background(), "clipper-kick", msg)
-		if err != nil {
-			log.Println("publish error", err)
-		}
-		log.Println("published")
+func simpleCallback() events.CallbackFn[clipper.ClipperKick] {
+	return func(header types.Header, kick clipper.ClipperKick) error {
+		fmt.Println("kick in simple", kick.Id, kick.Usr)
 		return nil
 	}
 }
