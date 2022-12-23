@@ -80,6 +80,9 @@ func (w *Indexer) Start() error {
 
 func (w *Indexer) processLogs(logs []types.Log) error {
 	for _, l := range logs {
+		if len(l.Topics) == 0 {
+			continue
+		}
 		handler, ok := w.logHandlers[l.Topics[0].String()]
 		if !ok {
 			continue
@@ -94,4 +97,8 @@ func (w *Indexer) processLogs(logs []types.Log) error {
 
 func (w *Indexer) RegisterEventHandler(handler events.Handler) {
 	w.logHandlers[handler.ID()] = handler
+}
+
+func (w *Indexer) Ptr() uint64 {
+	return w.ptr
 }

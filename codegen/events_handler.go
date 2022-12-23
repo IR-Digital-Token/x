@@ -3,12 +3,22 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/IR-Digital-Token/x/chain/events"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/spf13/cobra"
 )
+
+var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+
+func toSnakeCase(str string) string {
+	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
+	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	return strings.ToLower(snake)
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "eh-gen",
@@ -28,7 +38,7 @@ var rootCmd = &cobra.Command{
 		}
 		for _, event := range abi.Events {
 			data := events.GenData{
-				Package:               strings.ToLower(contract),
+				Package:               toSnakeCase(contract),
 				BindingEventName:      event.Name,
 				BindingEventSignature: event.ID.Hex(),
 				BindingContract:       contract,
