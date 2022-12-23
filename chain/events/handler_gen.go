@@ -49,20 +49,20 @@ func (h *{{.BindingEventName}}Handler) DecodeLog(log types.Log) (interface{}, er
 	return h.binding.Parse{{.BindingEventName}}(log)
 }
 
-func (h *{{.BindingEventName}}Handler) HandleEvent(event interface{}) error {
+func (h *{{.BindingEventName}}Handler) HandleEvent(header types.Header, event interface{}) error {
 	e, ok := event.({{.BindingContract}}{{.BindingEventName}})
 	if !ok {
 		return errors.New("event type is not {{.BindingContract}}{{.BindingEventName}}")
 	}
-	return h.callback(e)
+	return h.callback(header, e)
 }
 
-func (h *{{.BindingEventName}}Handler) DecodeAndHandle(log types.Log) error {
+func (h *{{.BindingEventName}}Handler) DecodeAndHandle(header types.Header, log types.Log) error {
 	e, err := h.binding.Parse{{.BindingEventName}}(log)
 	if err != nil {
 		return err
 	}
-	return h.callback(*e)
+	return h.callback(header, *e)
 }
 
 func New{{.BindingEventName}}Handler(addr common.Address, eth *ethclient.Client, callback events.CallbackFn[{{.BindingContract}}{{.BindingEventName}}]) events.Handler {

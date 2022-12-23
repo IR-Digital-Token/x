@@ -13,6 +13,7 @@ type BlockPointer interface {
 	Create() error
 	Exists() bool
 	Read() (uint64, error)
+	Inc() error
 }
 
 type fileBlockPointer struct {
@@ -95,4 +96,12 @@ func (fp *fileBlockPointer) Read() (uint64, error) {
 		return 0, err
 	}
 	return blockI, nil
+}
+
+func (fp *fileBlockPointer) Inc() error {
+	r, err := fp.Read()
+	if err != nil {
+		return err
+	}
+	return fp.Update(r + 1)
 }

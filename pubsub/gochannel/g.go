@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/IR-Digital-Token/x/pubsub"
 	"log"
 	"sync"
 
 	"github.com/IR-Digital-Token/x/messages"
-	"github.com/IR-Digital-Token/x/queue"
 )
 
 // GoChannel is the simplest Pub/Sub implementation.
@@ -28,7 +28,7 @@ type GoChannel struct {
 	closing    chan struct{}
 }
 
-func NewGoChannel(outputChannelBuffer int) queue.Q {
+func NewGoChannel(outputChannelBuffer int) pubsub.Pubsub {
 	return &GoChannel{
 		outputChannelBuffer:    outputChannelBuffer,
 		subscribers:            make(map[string][]*subscriber),
@@ -81,7 +81,7 @@ func (g *GoChannel) sendMessage(topic string, message *messages.Message) error {
 	return nil
 }
 
-func (g *GoChannel) Subscribe(ctx context.Context, topic string, callback queue.CallbackFn) error {
+func (g *GoChannel) Subscribe(ctx context.Context, topic string, callback pubsub.CallbackFn) error {
 	g.closedLock.Lock()
 
 	if g.closed {

@@ -1,4 +1,4 @@
-package queue
+package pubsub
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 type CallbackFn func(msg *messages.Message) error
 
-type Q interface {
+type Pubsub interface {
 	// Connect tries to create a connection to queue.
 	Connect() error
 
