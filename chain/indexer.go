@@ -59,7 +59,7 @@ func (w *Indexer) Init(blockInterval time.Duration) {
 	w.blockInterval = blockInterval
 }
 
-func (w *Indexer) Start() error {
+func (w *Indexer) Start(ctx context.Context) error {
 	head := <-w.Head
 
 	for w.ptr <= head {
