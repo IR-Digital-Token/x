@@ -18,8 +18,9 @@ import (
 type Indexer struct {
 	Head chan uint64
 
-	ptr       uint64
-	batchSize uint64
+	ptr           uint64
+	batchSize     uint64
+	blockInterval time.Duration
 
 	pool         *ants.Pool
 	eth          *ethclient.Client
@@ -55,13 +56,14 @@ func (w *Indexer) Init(blockInterval time.Duration) {
 		panic(err)
 	}
 	w.Head = head
+	w.blockInterval = blockInterval
 }
 
-func (w *Indexer) Start(ctx context.Context) error {
+func (w *Indexer) Start() error {
 	head := <-w.Head
 
 	for w.ptr <= head {
-		err := w.loop(ctx, w.ptr, min(w.ptr+w.batchSize, head))
+		err := w.loop(w.ptr, min(w.ptr+w.batchSize, head))
 		if err != nil {
 			return err
 		}
@@ -87,15 +89,18 @@ func min(x, y uint64) uint64 {
 	return y
 }
 
-func (w *Indexer) loop(ctx context.Context, from, to uint64) error {
+func (w *Indexer) loop(from, to uint64) error {
 	ch := make(chan error)
 	done := make(chan struct{})
+	parent := context.Background()
 	go func() {
 		wg := &sync.WaitGroup{}
 		for i := from; i < to; i++ {
 			wg.Add(1)
 			j := i
 			err := w.pool.Submit(func() {
+				ctx, cancel := context.WithTimeout(parent, w.blockInterval)
+				defer cancel()
 				err := w.processBlock(ctx, big.NewInt(int64(j)))
 				if err != nil {
 					ch <- err
