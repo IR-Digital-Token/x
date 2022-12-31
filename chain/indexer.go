@@ -57,16 +57,21 @@ func (w *Indexer) Init(blockInterval time.Duration) {
 	w.Head = head
 }
 
-func (w *Indexer) Start() error {
+func (w *Indexer) Start(ctx context.Context) error {
 	head := <-w.Head
 
 	for w.ptr <= head {
-		err := w.loop(w.ptr, w.ptr+w.batchSize)
+		err := w.loop(ctx, w.ptr, min(w.ptr+w.batchSize, head))
 		if err != nil {
 			return err
 		}
 
-		w.ptr += w.batchSize
+		diff := head - w.ptr
+		if diff < w.batchSize {
+			w.ptr += diff
+		} else {
+			w.ptr += w.batchSize
+		}
 		err = w.blockPointer.Update(w.ptr)
 		if err != nil {
 			return err
@@ -75,7 +80,14 @@ func (w *Indexer) Start() error {
 	return nil
 }
 
-func (w *Indexer) loop(from, to uint64) error {
+func min(x, y uint64) uint64 {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func (w *Indexer) loop(ctx context.Context, from, to uint64) error {
 	ch := make(chan error)
 	done := make(chan struct{})
 	go func() {
@@ -84,7 +96,7 @@ func (w *Indexer) loop(from, to uint64) error {
 			wg.Add(1)
 			j := i
 			err := w.pool.Submit(func() {
-				err := w.processBlock(big.NewInt(int64(j)))
+				err := w.processBlock(ctx, big.NewInt(int64(j)))
 				if err != nil {
 					ch <- err
 					return
@@ -107,13 +119,13 @@ func (w *Indexer) loop(from, to uint64) error {
 	}
 }
 
-func (w *Indexer) processBlock(number *big.Int) error {
-	block, err := w.eth.BlockByNumber(context.Background(), number)
+func (w *Indexer) processBlock(ctx context.Context, number *big.Int) error {
+	block, err := w.eth.BlockByNumber(ctx, number)
 	if err != nil {
 		return err
 	}
 
-	logs, err := w.eth.FilterLogs(context.Background(), ethereum.FilterQuery{
+	logs, err := w.eth.FilterLogs(ctx, ethereum.FilterQuery{
 		FromBlock: block.Number(),
 		ToBlock:   block.Number(),
 	})
