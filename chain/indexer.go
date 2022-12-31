@@ -59,10 +59,9 @@ func (w *Indexer) Init(blockInterval time.Duration) {
 	w.blockInterval = blockInterval
 }
 
-func (w *Indexer) Start(ctx context.Context) error {
+func (w *Indexer) Start() error {
 	head := <-w.Head
-
-	for w.ptr <= head {
+	for w.ptr < head {
 		err := w.loop(w.ptr, min(w.ptr+w.batchSize, head))
 		if err != nil {
 			return err
