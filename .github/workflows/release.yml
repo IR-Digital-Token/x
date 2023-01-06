@@ -28,3 +28,12 @@ jobs:
         goversion: 1.19
         binary_name: eh-gen
         project_path: ./codegen/
+  asset_fetcher:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: wyozi/download-gh-release-asset@master
+      with:
+        args: release_asset.dat
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  
