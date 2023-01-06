@@ -1,8 +1,6 @@
 FROM golang:1.19
 
 WORKDIR /app
-COPY . .
-RUN go mod download && go build codegen/events_handler.go && mv events_handler eh-gen
 ARG GETH_VERSION="1.10.21-67109427"
 ARG SOLIDITY_VERSION="0.8.16"
 LABEL SOLIDITY_VERSION \
@@ -10,7 +8,8 @@ LABEL SOLIDITY_VERSION \
       "Golang builder dependencies" \
       "Maintainer Bitex"
 
-
+COPY . .
+RUN go mod download && go build codegen/events_handler.go && mv events_handler eh-gen
 RUN wget -q "https://github.com/ethereum/solidity/releases/download/v$SOLIDITY_VERSION/solc-static-linux" \
   && chmod +x solc-static-linux \
   && mv solc-static-linux /usr/local/bin/solc \
