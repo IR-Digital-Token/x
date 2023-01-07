@@ -1,0 +1,22 @@
+name: CI + CD X
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  Build:
+    runs-on: ubuntu-20.4
+    steps:
+      - name: Login to reg Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: registry.australis.finance
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASS }}
+
+      - uses: actions/checkout@v2
+      - run: |
+          docker build -t  registry.australis.finance/go-basefile:7.0 .
+          docker push registry.australis.finance/go-basefile:7.0
+        
