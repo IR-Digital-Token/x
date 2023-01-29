@@ -18,16 +18,17 @@ import (
 )
 
 type Indexer struct {
-	Head                  chan uint64
-	ptr                   uint64
-	batchSize             uint64
-	blockInterval         time.Duration
-	pool                  *ants.Pool
-	eth                   *ethclient.Client
-	blockPointer          BlockPointer
-	logHandlers           map[string]events.Handler
-	addresses             map[string]bool
-	registerdTransactions map[common.Hash]transactions.Handler
+	Head          chan uint64
+	ptr           uint64
+	batchSize     uint64
+	blockInterval time.Duration
+	pool          *ants.Pool
+	eth           *ethclient.Client
+	blockPointer  BlockPointer
+	logHandlers   map[string]events.Handler
+	addresses     map[string]bool
+	txWatchList   map[common.Hash]transactions.Handler
+	mutex         sync.Mutex
 }
 
 func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) *Indexer {
@@ -36,13 +37,13 @@ func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) 
 		panic(err)
 	}
 	return &Indexer{
-		eth:                   eth,
-		blockPointer:          blockPointer,
-		logHandlers:           make(map[string]events.Handler),
-		pool:                  pool,
-		batchSize:             uint64(poolSize * 10),
-		addresses:             make(map[string]bool),
-		registerdTransactions: make(map[common.Hash]transactions.Handler),
+		eth:          eth,
+		blockPointer: blockPointer,
+		logHandlers:  make(map[string]events.Handler),
+		pool:         pool,
+		batchSize:    uint64(poolSize * 10),
+		addresses:    make(map[string]bool),
+		txWatchList:  make(map[common.Hash]transactions.Handler),
 	}
 }
 
@@ -153,7 +154,7 @@ func (w *Indexer) processTransactions(header types.Header, txList types.Transact
 			return err
 		}
 
-		handler, ok := w.registerdTransactions[txHash]
+		handler, ok := w.txWatchList[txHash]
 		if !ok {
 			continue
 		}
@@ -161,7 +162,7 @@ func (w *Indexer) processTransactions(header types.Header, txList types.Transact
 		if err != nil {
 			return err
 		}
-		w.UnRegisterTransaction(handler)
+		w.UnWatchTx(handler)
 	}
 	return nil
 }
@@ -198,7 +199,7 @@ func (w *Indexer) filterTxHash(transactions types.Transactions) types.Transactio
 	var res types.Transactions
 	for _, tx := range transactions {
 		txHash := tx.Hash()
-		_, ok := w.registerdTransactions[txHash]
+		_, ok := w.txWatchList[txHash]
 		if ok {
 			res = append(res, tx)
 		}
@@ -214,12 +215,16 @@ func (w *Indexer) RegisterAddress(addr common.Address) {
 	w.addresses[addr.String()] = true
 }
 
-func (w *Indexer) RegisterTransaction(txHandler transactions.Handler) {
-	w.registerdTransactions[txHandler.ID()] = txHandler
+func (w *Indexer) WatchTx(handler transactions.Handler) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	w.txWatchList[handler.ID()] = handler
 }
 
-func (w *Indexer) UnRegisterTransaction(txHandler transactions.Handler) {
-	delete(w.registerdTransactions, txHandler.ID())
+func (w *Indexer) UnWatchTx(txHandler transactions.Handler) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	delete(w.txWatchList, txHandler.ID())
 }
 
 func (w *Indexer) Ptr() uint64 {
