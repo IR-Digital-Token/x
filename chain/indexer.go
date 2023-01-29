@@ -210,6 +210,13 @@ func (w *Indexer) filterTxHash(transactions types.Transactions) types.Transactio
 func (w *Indexer) RegisterEventHandler(handler events.Handler) {
 	w.logHandlers[handler.ID()] = handler
 }
+func (w *Indexer) BatchRegisterEventHandler(handlers ...events.Handler) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	for _, handler := range handlers {
+		w.logHandlers[handler.ID()] = handler
+	}
+}
 
 func (w *Indexer) RegisterAddress(addr common.Address) {
 	w.addresses[addr.String()] = true
