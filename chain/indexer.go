@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/IR-Digital-Token/x/chain/events"
+	"github.com/IR-Digital-Token/x/chain/transactions"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/panjf2000/ants/v2"
@@ -16,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type TransactionHashCallbackFn func(header types.Header, recipt *types.Receipt) error
 type Indexer struct {
 	Head                  chan uint64
 	ptr                   uint64
@@ -27,7 +27,7 @@ type Indexer struct {
 	blockPointer          BlockPointer
 	logHandlers           map[string]events.Handler
 	addresses             map[string]bool
-	registerdTransactions map[common.Hash]TransactionHashCallbackFn
+	registerdTransactions map[common.Hash]transactions.Handler
 }
 
 func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) *Indexer {
@@ -42,7 +42,7 @@ func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) 
 		pool:                  pool,
 		batchSize:             uint64(poolSize * 10),
 		addresses:             make(map[string]bool),
-		registerdTransactions: make(map[common.Hash]TransactionHashCallbackFn),
+		registerdTransactions: make(map[common.Hash]transactions.Handler),
 	}
 }
 
@@ -138,23 +138,30 @@ func (w *Indexer) processBlock(ctx context.Context, number *big.Int) error {
 	if err != nil {
 		return err
 	}
-	err = w.processTransactions(*block.Header(), block.Transactions())
+	err = w.processTransactions(*block.Header(), w.filterTxHash(block.Transactions()))
 	if err != nil {
 		return err
 	}
 	return w.processLogs(*block.Header(), w.filterLogs(logs))
 }
 
-func (w *Indexer) processTransactions(header types.Header, blockTransactions types.Transactions) error {
-	txList := w.filterTxHash(blockTransactions)
+func (w *Indexer) processTransactions(header types.Header, txList types.Transactions) error {
 	for _, tx := range txList {
 		txHash := tx.Hash()
 		txRecipt, err := w.eth.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
 			return err
 		}
-		w.registerdTransactions[txHash](header, txRecipt)
-		w.UnRegisterTransaction(txHash)
+
+		handler, ok := w.registerdTransactions[txHash]
+		if !ok {
+			continue
+		}
+		err = handler.HandleTransaction(header, txRecipt)
+		if err != nil {
+			return err
+		}
+		w.UnRegisterTransaction(handler)
 	}
 	return nil
 }
@@ -207,12 +214,12 @@ func (w *Indexer) RegisterAddress(addr common.Address) {
 	w.addresses[addr.String()] = true
 }
 
-func (w *Indexer) RegisterTransaction(txHash common.Hash, txHashCallBack TransactionHashCallbackFn) {
-	w.registerdTransactions[txHash] = txHashCallBack
+func (w *Indexer) RegisterTransaction(txHandler transactions.Handler) {
+	w.registerdTransactions[txHandler.ID()] = txHandler
 }
 
-func (w *Indexer) UnRegisterTransaction(txHash common.Hash) {
-	delete(w.registerdTransactions, txHash)
+func (w *Indexer) UnRegisterTransaction(txHandler transactions.Handler) {
+	delete(w.registerdTransactions, txHandler.ID())
 }
 
 func (w *Indexer) Ptr() uint64 {
