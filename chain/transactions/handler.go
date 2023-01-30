@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+type CallbackFn func(header types.Header, recipt *types.Receipt) error
 type Handler interface {
 	ID() common.Hash
 	HandleTransaction(header types.Header, recipt *types.Receipt) error

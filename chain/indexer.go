@@ -28,7 +28,7 @@ type Indexer struct {
 	logHandlers   map[string]events.Handler
 	addresses     map[string]bool
 	txWatchList   map[common.Hash]transactions.Handler
-	mutex         sync.Mutex
+	mutex         *sync.Mutex
 }
 
 func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) *Indexer {
@@ -210,7 +210,7 @@ func (w *Indexer) filterTxHash(transactions types.Transactions) types.Transactio
 func (w *Indexer) RegisterEventHandler(handler events.Handler) {
 	w.logHandlers[handler.ID()] = handler
 }
-func (w *Indexer) RegisterEventHandlers(handlers ...events.Handler) {
+func (w *Indexer) RegisterEventHandlersDon(handlers ...events.Handler) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	for _, handler := range handlers {
