@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type Indexer struct {
@@ -23,7 +22,7 @@ type Indexer struct {
 	batchSize     uint64
 	blockInterval time.Duration
 	pool          *ants.Pool
-	eth           *ethclient.Client
+	eth           IEthereum
 	blockPointer  BlockPointer
 	logHandlers   map[string]events.Handler
 	addresses     map[string]bool
@@ -31,7 +30,7 @@ type Indexer struct {
 	mutex         *sync.Mutex
 }
 
-func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) *Indexer {
+func NewIndexer(eth IEthereum, blockPointer BlockPointer, poolSize int) *Indexer {
 	pool, err := ants.NewPool(poolSize)
 	if err != nil {
 		panic(err)

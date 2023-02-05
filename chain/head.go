@@ -4,11 +4,9 @@ import (
 	"context"
 	"log"
 	"time"
-
-	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func HeadChannel(eth *ethclient.Client, interval time.Duration) (chan uint64, error) {
+func HeadChannel(eth IEthereum, interval time.Duration) (chan uint64, error) {
 	headChan := make(chan uint64)
 	go func() {
 		t := time.NewTicker(interval)
