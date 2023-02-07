@@ -10,7 +10,7 @@ import (
 )
 
 type SimulatedEthereum interface {
-	IEthereum
+	Ethereum
 	SimulatedBlockchain
 }
 

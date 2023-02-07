@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func HeadChannel(eth IEthereum, interval time.Duration) (chan uint64, error) {
+func HeadChannel(eth Ethereum, interval time.Duration) (chan uint64, error) {
 	headChan := make(chan uint64)
 	go func() {
 		t := time.NewTicker(interval)

@@ -19,7 +19,7 @@ type SimulatedBlockchain interface {
 	Fork(ctx context.Context, parent common.Hash) error
 }
 
-type IEthereum interface {
+type Ethereum interface {
 	ethereum.ChainReader
 	ethereum.LogFilterer
 	ethereum.ChainStateReader

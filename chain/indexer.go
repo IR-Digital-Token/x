@@ -24,7 +24,7 @@ type Indexer struct {
 	batchSize     uint64
 	blockInterval time.Duration
 	pool          *ants.Pool
-	eth           IEthereum
+	eth           Ethereum
 	blockPointer  BlockPointer
 	logHandlers   map[string]events.Handler
 	addresses     map[string]bool
@@ -32,7 +32,7 @@ type Indexer struct {
 	mutex         *sync.Mutex
 }
 
-func NewIndexer(eth IEthereum, blockPointer BlockPointer, poolSize int) *Indexer {
+func NewIndexer(eth Ethereum, blockPointer BlockPointer, poolSize int) *Indexer {
 	pool, err := ants.NewPool(poolSize)
 	if err != nil {
 		panic(err)
