@@ -16,6 +16,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+type Test struct {
+}
 type Indexer struct {
 	Head          chan uint64
 	ptr           uint64
