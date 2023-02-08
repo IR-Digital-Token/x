@@ -27,6 +27,7 @@ func TestRegisterAddress(t *testing.T) {
 		t.Errorf("expect %s is equal to %t in address and it's %t", account, true, false)
 	}
 }
+
 func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types.Block, common.Hash) {
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
@@ -37,8 +38,8 @@ func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types
 
 	balance := new(big.Int)
 	balance.SetString("10000000000000000000", 10) // 10 eth in wei
-	fmt.Printf("t: %v\n", balance)
 	address := auth.From
+
 	genesisAlloc := map[common.Address]core.GenesisAccount{
 		address: {
 			Balance: balance,
@@ -48,6 +49,7 @@ func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types
 	blockGasLimit := uint64(4712388)
 	client := NewSimulatedEthereum(backends.NewSimulatedBackend(genesisAlloc, blockGasLimit))
 
+	client.Commit()
 	// fromAddress := auth.From
 	var nonce uint64
 	nonce = 0
@@ -63,11 +65,15 @@ func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types
 		t.Fatal(err)
 	}
 
+	chainId, err := client.ChainID(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
 	toAddress := common.HexToAddress("0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d")
 	var data []byte
 	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
 
-	signedTx, err := types.SignTx(tx, types.NewLondonSigner(nil), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainId), privateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,6 +97,7 @@ func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types
 
 	return client, receipt, block, signedTx.Hash()
 }
+
 func TestWatchTx(t *testing.T) {
 	// var cnt int
 	eth, recipt, block, txHash := sendNewTransaction(t)
