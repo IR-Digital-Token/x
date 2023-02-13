@@ -8,5 +8,5 @@ import (
 type CallbackFn func(header types.Header, recipt *types.Receipt) error
 type Handler interface {
 	ID() common.Hash
-	HandleTransaction(header types.Header, recipt *types.Receipt) error
+	HandleTransaction() func(header types.Header, recipt *types.Receipt) error
 }

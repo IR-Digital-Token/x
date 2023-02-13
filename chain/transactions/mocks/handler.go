@@ -14,15 +14,17 @@ type Handler struct {
 	mock.Mock
 }
 
-// HandleTransaction provides a mock function with given fields: header, recipt
-func (_m *Handler) HandleTransaction(header types.Header, recipt *types.Receipt) error {
-	ret := _m.Called(header, recipt)
+// HandleTransaction provides a mock function with given fields:
+func (_m *Handler) HandleTransaction() func(types.Header, *types.Receipt) error {
+	ret := _m.Called()
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(types.Header, *types.Receipt) error); ok {
-		r0 = rf(header, recipt)
+	var r0 func(types.Header, *types.Receipt) error
+	if rf, ok := ret.Get(0).(func() func(types.Header, *types.Receipt) error); ok {
+		r0 = rf()
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(func(types.Header, *types.Receipt) error)
+		}
 	}
 
 	return r0

@@ -2,17 +2,18 @@ package chain
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/big"
 	"testing"
 
+	repomocks "github.com/IR-Digital-Token/x/chain/transactions/mocks"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRegisterAddress(t *testing.T) {
@@ -28,7 +29,8 @@ func TestRegisterAddress(t *testing.T) {
 	}
 }
 
-func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types.Block, common.Hash) {
+func TestWatchTx(t *testing.T) {
+
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
@@ -50,14 +52,8 @@ func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types
 	client := NewSimulatedEthereum(backends.NewSimulatedBackend(genesisAlloc, blockGasLimit))
 
 	client.Commit()
-	// fromAddress := auth.From
 	var nonce uint64
 	nonce = 0
-	// nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
 	value := big.NewInt(0)    // in wei (1 eth)
 	gasLimit := uint64(21000) // in units
 	gasPrice, err := client.SuggestGasPrice(context.Background())
@@ -77,11 +73,19 @@ func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		t.Fatal(err)
 	}
+	var blockInterval BlockPointer
+	var cnt int
+	indexer := NewIndexer(client, blockInterval, 2)
+	mockTxHandler := repomocks.NewHandler(t)
+	mockTxHandler.On("ID").Return(signedTx.Hash()).On("HandleTransaction").Return(func(header types.Header, recipt *types.Receipt) error {
+		cnt += 1
+		return nil
+	})
+	indexer.WatchTx(mockTxHandler)
 
 	client.Commit()
 
@@ -94,23 +98,9 @@ func sendNewTransaction(t *testing.T) (SimulatedEthereum, *types.Receipt, *types
 	if receipt == nil {
 		log.Fatal("receipt is nil. Forgot to commit?")
 	}
+	checkHandler := indexer.txWatchList[signedTx.Hash()]
 
-	return client, receipt, block, signedTx.Hash()
-}
-
-func TestWatchTx(t *testing.T) {
-	// var cnt int
-	eth, recipt, block, txHash := sendNewTransaction(t)
-	fmt.Print(eth, recipt, block, txHash)
-	// var blockInterval BlockPointer
-	// indexer := NewIndexer(eth, blockInterval, 2)
-	// mockTxHandler := &repomocks.Handler{}
-	// mockTxHandler.On("ID").Return(txHash).Once()
-	// mockTxHandler.On("HandleTransaction").Return(func(header types.Header, recipt *types.Receipt) error {
-	// 	cnt += 1
-	// 	return nil
-	// }).Once()
-	// indexer.WatchTx(mockTxHandler)
-	// indexer.txWatchList[txHash].HandleTransaction(*block.Header(), recipt)
-	// assert.Equal(t, 1, cnt)
+	mockTxHandler.HandleTransaction()(*block.Header(), receipt)
+	assert.Equal(t, signedTx.Hash(), checkHandler.ID(), "The two words should be the same.")
+	assert.Equal(t, cnt, 1, "callback function must increase the counter after geting the transaction hash from block tx list")
 }

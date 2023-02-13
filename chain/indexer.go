@@ -37,6 +37,7 @@ func NewIndexer(eth Ethereum, blockPointer BlockPointer, poolSize int) *Indexer 
 	if err != nil {
 		panic(err)
 	}
+
 	return &Indexer{
 		eth:          eth,
 		blockPointer: blockPointer,
@@ -45,6 +46,7 @@ func NewIndexer(eth Ethereum, blockPointer BlockPointer, poolSize int) *Indexer 
 		batchSize:    uint64(poolSize * 10),
 		addresses:    make(map[string]bool),
 		txWatchList:  make(map[common.Hash]transactions.Handler),
+		mutex:        &sync.Mutex{},
 	}
 }
 
@@ -159,7 +161,7 @@ func (w *Indexer) processTransactions(header types.Header, txList types.Transact
 		if !ok {
 			continue
 		}
-		err = handler.HandleTransaction(header, txRecipt)
+		err = handler.HandleTransaction()(header, txRecipt)
 		if err != nil {
 			return err
 		}
