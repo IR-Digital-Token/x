@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/IR-Digital-Token/x/pubsub"
 	"log"
 	"sync"
+
+	"github.com/IR-Digital-Token/x/pubsub"
 
 	"github.com/IR-Digital-Token/x/messages"
 )

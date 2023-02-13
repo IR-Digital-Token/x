@@ -2,38 +2,40 @@ package chain
 
 import (
 	"context"
+	"sync"
+
 	"github.com/IR-Digital-Token/x/chain/events"
+	"github.com/IR-Digital-Token/x/chain/transactions"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/panjf2000/ants/v2"
-	"sync"
 
 	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type Indexer struct {
-	Head chan uint64
-
+	Head          chan uint64
 	ptr           uint64
 	batchSize     uint64
 	blockInterval time.Duration
-
-	pool         *ants.Pool
-	eth          *ethclient.Client
-	blockPointer BlockPointer
-	logHandlers  map[string]events.Handler
-	addresses    map[string]bool
+	pool          *ants.Pool
+	eth           Ethereum
+	blockPointer  BlockPointer
+	logHandlers   map[string]events.Handler
+	addresses     map[string]bool
+	txWatchList   map[common.Hash]transactions.Handler
+	mutex         *sync.Mutex
 }
 
-func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) *Indexer {
+func NewIndexer(eth Ethereum, blockPointer BlockPointer, poolSize int) *Indexer {
 	pool, err := ants.NewPool(poolSize)
 	if err != nil {
 		panic(err)
 	}
+
 	return &Indexer{
 		eth:          eth,
 		blockPointer: blockPointer,
@@ -41,6 +43,8 @@ func NewIndexer(eth *ethclient.Client, blockPointer BlockPointer, poolSize int) 
 		pool:         pool,
 		batchSize:    uint64(poolSize * 10),
 		addresses:    make(map[string]bool),
+		txWatchList:  make(map[common.Hash]transactions.Handler),
+		mutex:        &sync.Mutex{},
 	}
 }
 
@@ -136,8 +140,32 @@ func (w *Indexer) processBlock(ctx context.Context, number *big.Int) error {
 	if err != nil {
 		return err
 	}
-
+	err = w.processTransactions(*block.Header(), w.filterTxHash(block.Transactions()))
+	if err != nil {
+		return err
+	}
 	return w.processLogs(*block.Header(), w.filterLogs(logs))
+}
+
+func (w *Indexer) processTransactions(header types.Header, txList types.Transactions) error {
+	for _, tx := range txList {
+		txHash := tx.Hash()
+		txRecipt, err := w.eth.TransactionReceipt(context.Background(), txHash)
+		if err != nil {
+			return err
+		}
+
+		handler, ok := w.txWatchList[txHash]
+		if !ok {
+			continue
+		}
+		err = handler.HandleTransaction()(header, txRecipt)
+		if err != nil {
+			return err
+		}
+		w.UnWatchTx(handler)
+	}
+	return nil
 }
 
 func (w *Indexer) processLogs(header types.Header, logs []types.Log) error {
@@ -161,8 +189,20 @@ func (w *Indexer) filterLogs(logs []types.Log) []types.Log {
 	var res []types.Log
 	for _, l := range logs {
 		_, ok := w.addresses[l.Address.String()]
+
 		if ok {
 			res = append(res, l)
+		}
+	}
+	return res
+}
+func (w *Indexer) filterTxHash(transactions types.Transactions) types.Transactions {
+	var res types.Transactions
+	for _, tx := range transactions {
+		txHash := tx.Hash()
+		_, ok := w.txWatchList[txHash]
+		if ok {
+			res = append(res, tx)
 		}
 	}
 	return res
@@ -171,9 +211,28 @@ func (w *Indexer) filterLogs(logs []types.Log) []types.Log {
 func (w *Indexer) RegisterEventHandler(handler events.Handler) {
 	w.logHandlers[handler.ID()] = handler
 }
+func (w *Indexer) RegisterEventHandlersDon(handlers ...events.Handler) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	for _, handler := range handlers {
+		w.logHandlers[handler.ID()] = handler
+	}
+}
 
 func (w *Indexer) RegisterAddress(addr common.Address) {
 	w.addresses[addr.String()] = true
+}
+
+func (w *Indexer) WatchTx(handler transactions.Handler) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	w.txWatchList[handler.ID()] = handler
+}
+
+func (w *Indexer) UnWatchTx(txHandler transactions.Handler) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	delete(w.txWatchList, txHandler.ID())
 }
 
 func (w *Indexer) Ptr() uint64 {
